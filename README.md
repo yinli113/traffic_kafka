@@ -96,6 +96,12 @@ Notes:\n
 - Streaming tables are incremental; if you change definitions or want to reprocess the same upload, use **Reset/Full refresh** in the Pipeline UI.\n
 - `traffic_silver.sql` intentionally does **not** require `enough_data=true` by default because the sample file often has `enough_data=false`.\n
 
+## Example visualization (Gold)
+
+This chart is built from `workspace.default.traffic_delay_agg` (avg delay over a sliding window):
+
+![Databricks Gold time series](image/databricks-gold-delay-time-series.png)
+
 ## Confluent Cloud (later): required env vars for Python producer/consumer
 
 Set these in addition to `KAFKA_BOOTSTRAP_SERVERS`:
