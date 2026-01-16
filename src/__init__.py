@@ -1,0 +1,2 @@
+"""Traffic Kafka learning project."""
+
