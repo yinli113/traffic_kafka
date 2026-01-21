@@ -3,7 +3,30 @@
 -- This is intentionally "exploration-friendly": it keeps enough_data/flags as columns
 -- but does not require enough_data=true (your sample file often has enough_data=false).
 
-CREATE OR REFRESH STREAMING TABLE traffic_silver
+CREATE OR REFRESH STREAMING TABLE workspace.default.traffic_silver
+(
+  link_id INT,
+  road_name STRING,
+  enabled BOOLEAN,
+  draft BOOLEAN,
+  interval_start TIMESTAMP,
+  travel_time_seconds DOUBLE,
+  delay_seconds DOUBLE,
+  speed_kmh DOUBLE,
+  enough_data BOOLEAN,
+  ignored BOOLEAN,
+  closed BOOLEAN,
+  expected_missing BOOLEAN,
+  length_m DOUBLE,
+  minimum_tt_seconds DOUBLE,
+  dumped_at TIMESTAMP,
+  travel_time_minutes DOUBLE,
+  free_flow_speed_kmh DOUBLE,
+  potential_incident BOOLEAN,
+  CONSTRAINT valid_travel_time EXPECT (travel_time_seconds >= 0) ON VIOLATION DROP ROW,
+  CONSTRAINT valid_speed EXPECT (speed_kmh >= 0) ON VIOLATION DROP ROW,
+  CONSTRAINT valid_length EXPECT (length_m > 0) ON VIOLATION DROP ROW
+)
 AS
 WITH base AS (
   SELECT
@@ -33,12 +56,13 @@ SELECT
   travel_time_seconds / 60.0 AS travel_time_minutes,
   (length_m / NULLIF(minimum_tt_seconds, 0)) * 3.6 AS free_flow_speed_kmh,
   CASE
-    WHEN speed_kmh IS NOT NULL
-         AND minimum_tt_seconds > 0
+    WHEN speed_kmh IS NOT NULL 
+         AND minimum_tt_seconds > 0 
          AND length_m IS NOT NULL
-         AND speed_kmh < 0.3 * ((length_m / minimum_tt_seconds) * 3.6)
-    THEN true
-    ELSE false
+         AND speed_kmh < 0.7 * free_flow_speed_kmh
+         AND speed_kmh < length_m / minimum_tt_seconds
+    THEN true 
+    ELSE false 
   END AS potential_incident
 FROM base
 WHERE enabled = true
@@ -46,4 +70,3 @@ WHERE enabled = true
   AND COALESCE(ignored, false) = false
   AND COALESCE(closed, false) = false
   AND COALESCE(expected_missing, false) = false;
-
