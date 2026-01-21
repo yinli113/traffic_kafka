@@ -74,6 +74,22 @@ python -m src.producer_poll --topic traffic_raw --interval-seconds 300 --duratio
 
 Afterward, open the `.jsonl` files in `./data/raw` to inspect the schema.
 
+## Kafka reliability checks (one command)
+
+This repo includes a quick status script that helps answer:
+
+- Did Kafka store messages (end offsets)?
+- Did my consumer group commit offsets (lag)?
+- Did my local dump consumer write JSONL, and how many messages per 5-minute window?
+
+Run:
+
+```bash
+cd /Users/yinli/Desktop/traffic_kafka
+source .venv/bin/activate
+python -m src.status_check --topic traffic_raw --group-id traffic_dump --out-dir ./data/raw --window-minutes 5 --since-minutes 120
+```
+
 ## Next phases
 
 - **Confluent Cloud**: the same producer/consumer can be pointed at Confluent Cloud by setting SASL env vars.
