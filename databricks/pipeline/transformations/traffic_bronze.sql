@@ -14,14 +14,14 @@ CREATE OR REFRESH STREAMING TABLE workspace.default.traffic_bronze
 )
 AS
 SELECT
-  topic,
-  partition,
-  offset,
-  kafka_timestamp_raw,
-  kafka_key,
-  value_str,
-  dumped_at,
+  CAST(topic AS STRING) AS topic,
+  CAST(partition AS INT) AS partition,
+  CAST(offset AS BIGINT) AS offset,
+  CAST(timestamp AS STRING) AS kafka_timestamp_raw,
+  CAST(key AS STRING) AS kafka_key,
+  CAST(value AS STRING) AS value_str,
+  CAST(dumped_at AS TIMESTAMP) AS dumped_at,
   -- envelope timestamps
   CAST(get_json_object(value_str, "$.ingested_at") AS TIMESTAMP) AS ingested_at,
   CAST(get_json_object(value_str, "$.payload.latest_stats.interval_start") AS TIMESTAMP) AS interval_start
-FROM STREAM(LIVE.traffic_raw_source);
+FROM STREAM(workspace.default.traffic_raw_file);
