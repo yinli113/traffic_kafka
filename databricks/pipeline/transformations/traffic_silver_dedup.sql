@@ -1,19 +1,16 @@
--- Silver (deduplicated)
+-- Silver (deduplicated) - DLT-native
 --
--- Deduplicate by natural key: (link_id, interval_start)
--- Keep the latest record by dumped_at.
+-- NOTE: ROW_NUMBER() window functions are NOT supported on streaming tables in DLT SQL.
+-- Use APPLY CHANGES INTO (SCD Type 1) to keep the latest record per natural key.
+--
+-- This keeps the newest record (by dumped_at) for each (link_id, interval_start).
 
-CREATE OR REFRESH STREAMING TABLE traffic_silver_dedup
-AS
-SELECT * EXCEPT (rn)
-FROM (
-  SELECT
-    *,
-    ROW_NUMBER() OVER (
-      PARTITION BY link_id, interval_start
-      ORDER BY dumped_at DESC
-    ) AS rn
-  FROM STREAM(LIVE.traffic_silver)
-)
-WHERE rn = 1;
+CREATE OR REFRESH STREAMING TABLE traffic_silver_dedup;
+
+APPLY CHANGES INTO LIVE.traffic_silver_dedup
+FROM STREAM(LIVE.traffic_silver)
+KEYS (link_id, interval_start)
+SEQUENCE BY dumped_at
+COLUMNS *
+STORED AS SCD TYPE 1;
 
