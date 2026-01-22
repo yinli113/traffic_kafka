@@ -6,6 +6,6 @@ SELECT
   window(interval_start, "10 minutes", "5 minutes") AS w,
   road_name,
   AVG(delay_seconds) AS avg_delay_seconds
-FROM STREAM(LIVE.traffic_silver_dedup)
+FROM STREAM(LIVE.fact_link_interval)
 GROUP BY window(interval_start, "10 minutes", "5 minutes"), road_name;
 
