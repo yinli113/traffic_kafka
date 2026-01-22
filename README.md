@@ -90,6 +90,8 @@ source .venv/bin/activate
 python -m src.status_check --topic traffic_raw --group-id traffic_dump --out-dir ./data/raw --window-minutes 5 --since-minutes 120
 ```
 
+See also: `docs/kafka_status_check.md` for a step-by-step explanation of offsets, lag, and common failure modes.
+
 ## Next phases
 
 - **Confluent Cloud**: the same producer/consumer can be pointed at Confluent Cloud by setting SASL env vars.
