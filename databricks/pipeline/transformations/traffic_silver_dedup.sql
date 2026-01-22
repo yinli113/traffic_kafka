@@ -12,5 +12,5 @@ FROM STREAM(LIVE.traffic_silver)
 KEYS (link_id, interval_start)
 SEQUENCE BY dumped_at
 COLUMNS *
-STORED AS SCD TYPE 1;
+;
 
