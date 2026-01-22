@@ -23,7 +23,6 @@ CREATE OR REFRESH STREAMING TABLE traffic_silver_dedup
   expected_missing BOOLEAN,
   length_m DOUBLE,
   minimum_tt_seconds DOUBLE,
-  dumped_at TIMESTAMP,
   travel_time_minutes DOUBLE,
   free_flow_speed_kmh DOUBLE,
   potential_incident BOOLEAN
@@ -33,6 +32,6 @@ APPLY CHANGES INTO LIVE.traffic_silver_dedup
 FROM STREAM(LIVE.traffic_silver)
 KEYS (link_id, interval_start)
 SEQUENCE BY dumped_at
-COLUMNS *
+COLUMNS * EXCEPT (dumped_at)
 ;
 

@@ -41,9 +41,9 @@ SELECT
   d.destination_site_id,
 
   -- Pipeline monitoring
-  s.dumped_at,
+  b.dumped_at,
   -- End-to-end latency proxy (event_time -> ingestion)
-  (unix_timestamp(s.dumped_at) - unix_timestamp(s.interval_start)) AS event_to_dumped_latency_seconds
+  (unix_timestamp(b.dumped_at) - unix_timestamp(s.interval_start)) AS event_to_dumped_latency_seconds
 
 FROM STREAM(LIVE.traffic_silver_dedup) s
 LEFT JOIN LIVE.dim_link d
