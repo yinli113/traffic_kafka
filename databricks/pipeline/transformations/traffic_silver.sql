@@ -23,6 +23,9 @@ CREATE OR REFRESH STREAMING TABLE workspace.default.traffic_silver
   travel_time_minutes DOUBLE,
   free_flow_speed_kmh DOUBLE,
   potential_incident BOOLEAN,
+  -- If latest_stats is missing/null, these derived fields become NULL.
+  -- Dropping NULL interval_start rows is a simple way to remove those incomplete records.
+  CONSTRAINT non_null_interval_start EXPECT (interval_start IS NOT NULL) ON VIOLATION DROP ROW,
   CONSTRAINT valid_travel_time EXPECT (travel_time_seconds >= 0) ON VIOLATION DROP ROW,
   CONSTRAINT valid_speed EXPECT (speed_kmh >= 0) ON VIOLATION DROP ROW,
   CONSTRAINT valid_length EXPECT (length_m > 0) ON VIOLATION DROP ROW
