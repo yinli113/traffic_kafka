@@ -3,7 +3,7 @@
 -- This is intentionally "exploration-friendly": it keeps enough_data/flags as columns
 -- but does not require enough_data=true (your sample file often has enough_data=false).
 
-CREATE OR REFRESH STREAMING TABLE workspace.default.traffic_silver
+CREATE OR REFRESH STREAMING TABLE traffic_silver
 (
   link_id INT,
   road_name STRING,

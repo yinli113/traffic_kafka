@@ -5,7 +5,7 @@
 
 -- Please edit the sample below
 
-CREATE OR REFRESH STREAMING TABLE workspace.default.traffic_bronze
+CREATE OR REFRESH STREAMING TABLE traffic_bronze
 (
   CONSTRAINT valid_partition EXPECT (partition >= 0) ON VIOLATION DROP ROW,
   CONSTRAINT valid_offset EXPECT (offset >= 0) ON VIOLATION DROP ROW,
