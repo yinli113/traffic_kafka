@@ -105,6 +105,7 @@ If you want to practice Databricks “Streaming Tables/SQL” without Kafka conn
    Recommended table name: `workspace.default.traffic_raw_file_bronze`\n
 2. Create a Databricks Pipeline and add SQL transformations.\n
    Use the SQL files in:\n
+   - `databricks/pipeline/transformations/traffic_raw_source.sql` (optional if you have multiple uploaded source tables)\n
    - `databricks/pipeline/transformations/traffic_bronze.sql`\n
    - `databricks/pipeline/transformations/traffic_silver.sql`\n
    - `databricks/pipeline/transformations/traffic_silver_dedup.sql`\n

@@ -21,4 +21,4 @@ SELECT
   CAST(value AS STRING)    AS value_str,
   value_json,
   dumped_at
-FROM STREAM(workspace.default.traffic_raw_file_bronze);
+FROM STREAM(LIVE.traffic_raw_source);
