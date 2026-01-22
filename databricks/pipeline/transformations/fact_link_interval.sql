@@ -15,10 +15,10 @@ SELECT
   s.speed_kmh,
 
   -- Provider metrics (from the raw payload; present when latest_stats is present)
-  CAST(b.value_json.payload.latest_stats.density AS DOUBLE) AS density,
-  CAST(b.value_json.payload.latest_stats.average_density AS DOUBLE) AS average_density,
-  CAST(b.value_json.payload.latest_stats.congestion AS DOUBLE) AS congestion_score,
-  CAST(b.value_json.payload.latest_stats.estimated_percent AS DOUBLE) AS estimated_percent,
+  CAST(get_json_object(b.value_str, "$.payload.latest_stats.density") AS DOUBLE) AS density,
+  CAST(get_json_object(b.value_str, "$.payload.latest_stats.average_density") AS DOUBLE) AS average_density,
+  CAST(get_json_object(b.value_str, "$.payload.latest_stats.congestion") AS DOUBLE) AS congestion_score,
+  CAST(get_json_object(b.value_str, "$.payload.latest_stats.estimated_percent") AS DOUBLE) AS estimated_percent,
 
   -- Quality flags
   s.enough_data,
@@ -50,6 +50,6 @@ LEFT JOIN LIVE.dim_link d
   ON d.link_id = s.link_id
 -- Join to bronze for fields we didn't carry into silver (density/congestion/etc)
 LEFT JOIN LIVE.traffic_bronze b
-  ON CAST(b.value_json.payload.id AS INT) = s.link_id
- AND CAST(b.value_json.payload.latest_stats.interval_start AS TIMESTAMP) = s.interval_start;
+  ON CAST(get_json_object(b.value_str, "$.payload.id") AS INT) = s.link_id
+ AND CAST(get_json_object(b.value_str, "$.payload.latest_stats.interval_start") AS TIMESTAMP) = s.interval_start;
 

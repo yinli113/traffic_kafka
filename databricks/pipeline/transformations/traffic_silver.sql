@@ -33,29 +33,44 @@ CREATE OR REFRESH STREAMING TABLE workspace.default.traffic_silver
 AS
 WITH base AS (
   SELECT
-    CAST(value_json.payload.id AS INT)                                AS link_id,
-    CAST(value_json.payload.name AS STRING)                           AS road_name,
-    CAST(value_json.payload.enabled AS BOOLEAN)                       AS enabled,
-    CAST(value_json.payload.draft AS BOOLEAN)                         AS draft,
+    CAST(get_json_object(value_str, "$.payload.id") AS INT) AS link_id,
+    CAST(get_json_object(value_str, "$.payload.name") AS STRING) AS road_name,
+    CAST(get_json_object(value_str, "$.payload.enabled") AS BOOLEAN) AS enabled,
+    CAST(get_json_object(value_str, "$.payload.draft") AS BOOLEAN) AS draft,
 
-    CAST(value_json.payload.latest_stats.interval_start AS TIMESTAMP) AS interval_start,
-    CAST(value_json.payload.latest_stats.travel_time AS DOUBLE)       AS travel_time_seconds,
-    CAST(value_json.payload.latest_stats.delay AS DOUBLE)             AS delay_seconds,
-    CAST(value_json.payload.latest_stats.speed AS DOUBLE)             AS speed_kmh,
+    CAST(get_json_object(value_str, "$.payload.latest_stats.interval_start") AS TIMESTAMP) AS interval_start,
+    CAST(get_json_object(value_str, "$.payload.latest_stats.travel_time") AS DOUBLE) AS travel_time_seconds,
+    CAST(get_json_object(value_str, "$.payload.latest_stats.delay") AS DOUBLE) AS delay_seconds,
+    CAST(get_json_object(value_str, "$.payload.latest_stats.speed") AS DOUBLE) AS speed_kmh,
 
-    CAST(value_json.payload.latest_stats.enough_data AS BOOLEAN)      AS enough_data,
-    CAST(value_json.payload.latest_stats.ignored AS BOOLEAN)          AS ignored,
-    CAST(value_json.payload.latest_stats.closed AS BOOLEAN)           AS closed,
-    CAST(value_json.payload.latest_stats.expected_missing AS BOOLEAN) AS expected_missing,
+    CAST(get_json_object(value_str, "$.payload.latest_stats.enough_data") AS BOOLEAN) AS enough_data,
+    CAST(get_json_object(value_str, "$.payload.latest_stats.ignored") AS BOOLEAN) AS ignored,
+    CAST(get_json_object(value_str, "$.payload.latest_stats.closed") AS BOOLEAN) AS closed,
+    CAST(get_json_object(value_str, "$.payload.latest_stats.expected_missing") AS BOOLEAN) AS expected_missing,
 
-    CAST(value_json.payload.length AS DOUBLE)                         AS length_m,
-    CAST(value_json.payload.minimum_tt AS DOUBLE)                     AS minimum_tt_seconds,
+    CAST(get_json_object(value_str, "$.payload.length") AS DOUBLE) AS length_m,
+    CAST(get_json_object(value_str, "$.payload.minimum_tt") AS DOUBLE) AS minimum_tt_seconds,
 
-    dumped_at
+    dumped_at,
+    value_str
   FROM STREAM(LIVE.traffic_bronze)
 )
 SELECT
-  *,
+  link_id,
+  road_name,
+  enabled,
+  draft,
+  interval_start,
+  travel_time_seconds,
+  delay_seconds,
+  speed_kmh,
+  enough_data,
+  ignored,
+  closed,
+  expected_missing,
+  length_m,
+  minimum_tt_seconds,
+  dumped_at,
   travel_time_seconds / 60.0 AS travel_time_minutes,
   (length_m / NULLIF(minimum_tt_seconds, 0)) * 3.6 AS free_flow_speed_kmh,
   CASE

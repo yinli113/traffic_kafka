@@ -17,10 +17,10 @@ WITH base AS (
     CAST(dumped_at AS TIMESTAMP) AS dumped_at,
 
     -- Producer ingestion time (when your producer published)
-    CAST(value_json.ingested_at AS TIMESTAMP) AS ingested_at,
+    CAST(get_json_object(value_str, "$.ingested_at") AS TIMESTAMP) AS ingested_at,
 
     -- Event time (stats interval time) - may be null for some records
-    CAST(value_json.payload.latest_stats.interval_start AS TIMESTAMP) AS interval_start,
+    CAST(get_json_object(value_str, "$.payload.latest_stats.interval_start") AS TIMESTAMP) AS interval_start,
 
     CAST(partition AS INT) AS partition,
     CAST(offset AS BIGINT) AS offset

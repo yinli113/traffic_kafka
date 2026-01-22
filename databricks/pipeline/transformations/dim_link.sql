@@ -7,32 +7,32 @@ CREATE OR REFRESH MATERIALIZED VIEW dim_link
 AS
 WITH ranked AS (
   SELECT
-    CAST(value_json.payload.id AS INT) AS link_id,
-    CAST(value_json.payload.href AS STRING) AS href,
-    CAST(value_json.payload.name AS STRING) AS name,
-    CAST(value_json.payload.public_name AS STRING) AS public_name,
-    CAST(value_json.payload.direction AS STRING) AS direction,
-    CAST(value_json.payload.enabled AS BOOLEAN) AS enabled,
-    CAST(value_json.payload.draft AS BOOLEAN) AS draft,
+    CAST(get_json_object(value_str, "$.payload.id") AS INT) AS link_id,
+    CAST(get_json_object(value_str, "$.payload.href") AS STRING) AS href,
+    CAST(get_json_object(value_str, "$.payload.name") AS STRING) AS name,
+    CAST(get_json_object(value_str, "$.payload.public_name") AS STRING) AS public_name,
+    CAST(get_json_object(value_str, "$.payload.direction") AS STRING) AS direction,
+    CAST(get_json_object(value_str, "$.payload.enabled") AS BOOLEAN) AS enabled,
+    CAST(get_json_object(value_str, "$.payload.draft") AS BOOLEAN) AS draft,
 
-    CAST(value_json.payload.length AS DOUBLE) AS length_m,
-    CAST(value_json.payload.min_number_of_lanes AS INT) AS min_number_of_lanes,
-    CAST(value_json.payload.minimum_tt AS DOUBLE) AS minimum_tt_seconds,
-    CAST(value_json.payload.is_freeway AS BOOLEAN) AS is_freeway,
+    CAST(get_json_object(value_str, "$.payload.length") AS DOUBLE) AS length_m,
+    CAST(get_json_object(value_str, "$.payload.min_number_of_lanes") AS INT) AS min_number_of_lanes,
+    CAST(get_json_object(value_str, "$.payload.minimum_tt") AS DOUBLE) AS minimum_tt_seconds,
+    CAST(get_json_object(value_str, "$.payload.is_freeway") AS BOOLEAN) AS is_freeway,
 
-    CAST(value_json.payload.origin.id AS BIGINT) AS origin_site_id,
-    CAST(value_json.payload.destination.id AS BIGINT) AS destination_site_id,
+    CAST(get_json_object(value_str, "$.payload.origin.id") AS BIGINT) AS origin_site_id,
+    CAST(get_json_object(value_str, "$.payload.destination.id") AS BIGINT) AS destination_site_id,
 
-    -- Keep as-is for mapping/heatmap use cases
-    value_json.payload.coordinates AS coordinates,
+    -- Keep coordinates as JSON text (schema can vary and it's large)
+    CAST(get_json_object(value_str, "$.payload.coordinates") AS STRING) AS coordinates_json,
 
     dumped_at,
     ROW_NUMBER() OVER (
-      PARTITION BY CAST(value_json.payload.id AS INT)
+      PARTITION BY CAST(get_json_object(value_str, "$.payload.id") AS INT)
       ORDER BY dumped_at DESC
     ) AS rn
   FROM LIVE.traffic_bronze
-  WHERE value_json.payload.id IS NOT NULL
+  WHERE get_json_object(value_str, "$.payload.id") IS NOT NULL
 )
 SELECT
   link_id,
@@ -48,7 +48,7 @@ SELECT
   is_freeway,
   origin_site_id,
   destination_site_id,
-  coordinates,
+  coordinates_json,
   dumped_at AS last_seen_at
 FROM ranked
 WHERE rn = 1;
