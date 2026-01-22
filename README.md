@@ -110,6 +110,7 @@ If you want to practice Databricks “Streaming Tables/SQL” without Kafka conn
    - `databricks/pipeline/transformations/traffic_silver_dedup.sql`\n
    - `databricks/pipeline/transformations/dim_link.sql`\n
    - `databricks/pipeline/transformations/fact_link_interval.sql`\n
+   - `databricks/pipeline/transformations/fact_kafka_monitor_5m.sql`\n
    - `databricks/pipeline/transformations/traffic_delay_agg.sql`\n
 3. Run the pipeline.\n
 
