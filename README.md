@@ -117,6 +117,31 @@ If you want to practice Databricks “Streaming Tables/SQL” without Kafka conn
 Notes:\n
 - Streaming tables are incremental; if you change definitions or want to reprocess the same upload, use **Reset/Full refresh** in the Pipeline UI.\n
 - `traffic_silver.sql` intentionally does **not** require `enough_data=true` by default because the sample file often has `enough_data=false`.\n
+\n
+### Incident flag threshold (make it evidence-based)\n
+\n
+In `traffic_silver.sql` we start with a simple heuristic for `potential_incident`:\n
+\n
+- We compute `free_flow_speed_kmh` from link length and `minimum_tt`.\n
+- We flag a potential incident when `speed_kmh < 0.7 * free_flow_speed_kmh`.\n
+\n
+**0.7 is just a starter heuristic**, picked so you’ll see some flags on small samples.\n
+Once you have more history, choose a threshold from your own data using percentiles of:\n
+`speed_ratio = speed_kmh / free_flow_speed_kmh`.\n
+\n
+Run this in Databricks (after the pipeline has produced `fact_link_interval`):\n
+\n
+```sql\n
+SELECT\n
+  approx_percentile(speed_kmh / free_flow_speed_kmh, 0.05) AS p05,\n
+  approx_percentile(speed_kmh / free_flow_speed_kmh, 0.10) AS p10,\n
+  approx_percentile(speed_kmh / free_flow_speed_kmh, 0.20) AS p20,\n
+  approx_percentile(speed_kmh / free_flow_speed_kmh, 0.50) AS median\n
+FROM workspace.default.fact_link_interval\n
+WHERE free_flow_speed_kmh > 0 AND speed_kmh IS NOT NULL;\n
+```\n
+\n
+Then update the multiplier (e.g. use `p10` as a data-driven cutoff), and optionally compute percentiles per `road_name`.\n
 
 ## Example visualization (Gold)
 
