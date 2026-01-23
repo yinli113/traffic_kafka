@@ -26,29 +26,50 @@ WITH base AS (
     CAST(offset AS BIGINT) AS offset
   FROM STREAM(LIVE.traffic_bronze)
 )
+,
+agg AS (
+  SELECT
+    window(dumped_at, "5 minutes") AS w,
+
+    COUNT(*) AS records_processed,
+
+    -- Partition distribution
+    SUM(CASE WHEN partition = 0 THEN 1 ELSE 0 END) AS partition_0_count,
+    SUM(CASE WHEN partition = 1 THEN 1 ELSE 0 END) AS partition_1_count,
+    SUM(CASE WHEN partition = 2 THEN 1 ELSE 0 END) AS partition_2_count,
+
+    -- Offsets give a rough sense of progress per partition
+    MAX(CASE WHEN partition = 0 THEN offset ELSE NULL END) AS max_offset_p0,
+    MAX(CASE WHEN partition = 1 THEN offset ELSE NULL END) AS max_offset_p1,
+    MAX(CASE WHEN partition = 2 THEN offset ELSE NULL END) AS max_offset_p2,
+
+    -- Latency: producer -> dump consumer (seconds)
+    AVG(unix_timestamp(dumped_at) - unix_timestamp(ingested_at)) AS avg_ingest_to_dump_latency_seconds,
+    MAX(unix_timestamp(dumped_at) - unix_timestamp(ingested_at)) AS max_ingest_to_dump_latency_seconds,
+
+    -- Latency: event time -> dump consumer (seconds)
+    AVG(unix_timestamp(dumped_at) - unix_timestamp(interval_start)) AS avg_event_to_dump_latency_seconds,
+    MAX(unix_timestamp(dumped_at) - unix_timestamp(interval_start)) AS max_event_to_dump_latency_seconds
+  FROM base
+  GROUP BY window(dumped_at, "5 minutes")
+)
 SELECT
-  window(dumped_at, "5 minutes") AS w,
+  -- Use these for charts (clean axis labels)
+  w.start AS window_start,
+  w.end AS window_end,
+  -- Keep the raw struct too (sometimes useful for debugging)
+  w,
 
-  COUNT(*) AS records_processed,
-
-  -- Partition distribution
-  SUM(CASE WHEN partition = 0 THEN 1 ELSE 0 END) AS partition_0_count,
-  SUM(CASE WHEN partition = 1 THEN 1 ELSE 0 END) AS partition_1_count,
-  SUM(CASE WHEN partition = 2 THEN 1 ELSE 0 END) AS partition_2_count,
-
-  -- Offsets give a rough sense of progress per partition
-  MAX(CASE WHEN partition = 0 THEN offset ELSE NULL END) AS max_offset_p0,
-  MAX(CASE WHEN partition = 1 THEN offset ELSE NULL END) AS max_offset_p1,
-  MAX(CASE WHEN partition = 2 THEN offset ELSE NULL END) AS max_offset_p2,
-
-  -- Latency: producer -> dump consumer (seconds)
-  AVG(unix_timestamp(dumped_at) - unix_timestamp(ingested_at)) AS avg_ingest_to_dump_latency_seconds,
-  MAX(unix_timestamp(dumped_at) - unix_timestamp(ingested_at)) AS max_ingest_to_dump_latency_seconds,
-
-  -- Latency: event time -> dump consumer (seconds)
-  AVG(unix_timestamp(dumped_at) - unix_timestamp(interval_start)) AS avg_event_to_dump_latency_seconds,
-  MAX(unix_timestamp(dumped_at) - unix_timestamp(interval_start)) AS max_event_to_dump_latency_seconds
-
-FROM base
-GROUP BY window(dumped_at, "5 minutes");
+  records_processed,
+  partition_0_count,
+  partition_1_count,
+  partition_2_count,
+  max_offset_p0,
+  max_offset_p1,
+  max_offset_p2,
+  avg_ingest_to_dump_latency_seconds,
+  max_ingest_to_dump_latency_seconds,
+  avg_event_to_dump_latency_seconds,
+  max_event_to_dump_latency_seconds
+FROM agg;
 
