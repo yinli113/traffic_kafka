@@ -143,11 +143,15 @@ WHERE free_flow_speed_kmh > 0 AND speed_kmh IS NOT NULL;\n
 \n
 Then update the multiplier (e.g. use `p10` as a data-driven cutoff), and optionally compute percentiles per `road_name`.\n
 
-## Example visualization (Gold)
+## Example visualizations
 
-This chart is built from `workspace.default.traffic_delay_agg` (avg delay over a sliding window):
+Pipeline overview:
 
-![Databricks Gold time series](image/databricks-gold-delay-time-series.png)
+![Databricks pipeline graph](image/pipeline%20graph.png)
+
+Traffic performance dashboard:
+
+![Databricks traffic performance](image/traffic%20performance.png)
 
 ## Confluent Cloud (later): required env vars for Python producer/consumer
 
