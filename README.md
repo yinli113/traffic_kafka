@@ -1,41 +1,35 @@
-# Victoria Real-Time Traffic Pipeline (Kafka + Streaming ETL)
+# Victoria Real-Time Traffic Pipeline
 
-This repo is a learning-first project to practice **data-in-motion** with a real public dataset:
+Learn Kafka by building a practical streaming pipeline on real traffic data from Victoria Transport Open Data.
 
-- **Source**: Victoria Transport Open Data (Bluetooth Travel Time)
-- **Buffer**: Kafka-compatible broker (local Redpanda first, then Confluent Cloud)
-- **Consumers**: (1) local dump-to-files for schema discovery, (2) Databricks Spark Structured Streaming → Delta
+- **Source**: Bluetooth Travel Time API
+- **Buffer**: Kafka-compatible broker (local Redpanda → Confluent Cloud later)
+- **Processing**: Databricks Streaming Tables (SQL) + Delta
+- **Outputs**: Kafka monitoring KPIs + traffic performance dashboard
 
-## Phase 0 (Start Here): Get API access
+## Architecture
 
-1. Go to the Transport Victoria Open Data portal dataset page for **Bluetooth Travel Time**.
-2. Create an account / sign in.
-3. Find the dataset's API access section and **generate an API key**.
-4. Find the **API endpoint URL** for the feed you want (there may be multiple endpoints/filters).
+![Pipeline overview](https://github.com/yinli113/traffic_kafka/blob/main/image/pipeline-graph.png?raw=1)
 
-Because portals vary, this repo supports multiple auth header styles.
+## API access
 
-- If the portal says:
-  - `x-api-key: <YOUR_KEY>` → set `VIC_API_KEY_HEADER=x-api-key`, `VIC_API_KEY_PREFIX=` (empty)
-  - `Authorization: Bearer <YOUR_KEY>` → set `VIC_API_KEY_HEADER=Authorization`, `VIC_API_KEY_PREFIX=Bearer `
+1. Open the Transport Victoria Open Data portal for **Bluetooth Travel Time**.
+2. Generate an API key.
+3. Copy the endpoint URL you want to poll.
 
-## Phase 0: Run local Kafka (Redpanda)
+Auth header formats vary by portal:
+
+- `x-api-key: <KEY>` → set `VIC_API_KEY_HEADER=x-api-key`, `VIC_API_KEY_PREFIX=` (empty)
+- `Authorization: Bearer <KEY>` → set `VIC_API_KEY_HEADER=Authorization`, `VIC_API_KEY_PREFIX=Bearer `
+
+## Quickstart (local Kafka)
 
 Prereqs: Docker Desktop installed and running.
 
-Start the broker:
-
 ```bash
 docker compose up -d
-```
-
-Create the topic:
-
-```bash
 docker exec -it traffic_redpanda rpk topic create traffic_raw --partitions 3 --replicas 1 --brokers localhost:9092
 ```
-
-## Phase 0: Install Python deps
 
 ```bash
 python3 -m venv .venv
@@ -43,11 +37,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Phase 0: 10-minute schema discovery run
-
-### 1) Run the consumer (dump messages to local files)
-
-This writes newline-delimited JSON to `./data/raw/traffic_raw_*.jsonl`.
+### 1) Run the consumer (dump messages to local JSONL)
 
 ```bash
 export KAFKA_BOOTSTRAP_SERVERS=localhost:9092
@@ -56,106 +46,55 @@ python -m src.consumer_dump --topic traffic_raw --out-dir ./data/raw
 
 ### 2) Run the producer (poll API and publish raw JSON)
 
-Set your endpoint + API auth:
-
 ```bash
 export VIC_API_URL="PASTE_THE_BLUETOOTH_TRAVEL_TIME_ENDPOINT_HERE"
 export VIC_API_KEY="PASTE_YOUR_KEY_HERE"
 export VIC_API_KEY_HEADER="x-api-key"          # or Authorization
 export VIC_API_KEY_PREFIX=""                   # or "Bearer "
 export KAFKA_BOOTSTRAP_SERVERS=localhost:9092
-```
-
-Run for ~10 minutes (you can change interval/duration):
-
-```bash
 python -m src.producer_poll --topic traffic_raw --interval-seconds 300 --duration-seconds 600
 ```
 
-Afterward, open the `.jsonl` files in `./data/raw` to inspect the schema.
+Afterward, inspect the `.jsonl` files in `./data/raw` to understand the schema.
 
-## Kafka reliability checks (one command)
-
-This repo includes a quick status script that helps answer:
-
-- Did Kafka store messages (end offsets)?
-- Did my consumer group commit offsets (lag)?
-- Did my local dump consumer write JSONL, and how many messages per 5-minute window?
-
-Run:
+## Kafka reliability check (one command)
 
 ```bash
-cd /Users/yinli/Desktop/traffic_kafka
 source .venv/bin/activate
 python -m src.status_check --topic traffic_raw --group-id traffic_dump --out-dir ./data/raw --window-minutes 5 --since-minutes 120
 ```
 
-See also: `docs/kafka_status_check.md` for a step-by-step explanation of offsets, lag, and common failure modes.
+See: `docs/kafka_status_check.md` for offsets, lag, and troubleshooting.
 
-## Next phases
+## Databricks Free Edition (file-based streaming)
 
-- **Confluent Cloud**: the same producer/consumer can be pointed at Confluent Cloud by setting SASL env vars.
-- **Databricks**: run the `databricks/traffic_stream.py` PySpark script once you’ve got data in Confluent Cloud.
+Use this when you want to practice streaming tables without Kafka connectivity.
 
-## Databricks Free Edition (no Confluent required): Pipeline SQL over uploaded JSONL
+1. Upload `data/raw/traffic_raw_*.jsonl` to Databricks and create a table.
+2. Recommended table name: `workspace.default.traffic_raw_file_bronze`.
+3. Create a Databricks Pipeline and add the SQL files:
+   - `databricks/pipeline/transformations/traffic_bronze.sql`
+   - `databricks/pipeline/transformations/traffic_silver.sql`
+   - `databricks/pipeline/transformations/traffic_silver_dedup.sql`
+   - `databricks/pipeline/transformations/dim_link.sql`
+   - `databricks/pipeline/transformations/fact_link_interval.sql`
+   - `databricks/pipeline/transformations/fact_kafka_monitor_5m.sql`
+   - `databricks/pipeline/transformations/traffic_delay_agg.sql`
+4. Run the pipeline (use **Reset/Full refresh** to reprocess uploads).
 
-If you want to practice Databricks “Streaming Tables/SQL” without Kafka connectivity:
+## Example dashboards
 
-1. Upload your local dump file `data/raw/traffic_raw_*.jsonl` into Databricks and create a table from it.\n
-   Recommended table name: `workspace.default.traffic_raw_file_bronze`\n
-2. Create a Databricks Pipeline and add SQL transformations.\n
-   Use the SQL files in:\n
-   - `databricks/pipeline/transformations/traffic_bronze.sql`\n
-   - `databricks/pipeline/transformations/traffic_silver.sql`\n
-   - `databricks/pipeline/transformations/traffic_silver_dedup.sql`\n
-   - `databricks/pipeline/transformations/dim_link.sql`\n
-   - `databricks/pipeline/transformations/fact_link_interval.sql`\n
-   - `databricks/pipeline/transformations/fact_kafka_monitor_5m.sql`\n
-   - `databricks/pipeline/transformations/traffic_delay_agg.sql`\n
-3. Run the pipeline.\n
+Traffic performance:
 
-Notes:\n
-- Streaming tables are incremental; if you change definitions or want to reprocess the same upload, use **Reset/Full refresh** in the Pipeline UI.\n
-- `traffic_silver.sql` intentionally does **not** require `enough_data=true` by default because the sample file often has `enough_data=false`.\n
-\n
-### Incident flag threshold (make it evidence-based)\n
-\n
-In `traffic_silver.sql` we start with a simple heuristic for `potential_incident`:\n
-\n
-- We compute `free_flow_speed_kmh` from link length and `minimum_tt`.\n
-- We flag a potential incident when `speed_kmh < 0.7 * free_flow_speed_kmh`.\n
-\n
-**0.7 is just a starter heuristic**, picked so you’ll see some flags on small samples.\n
-Once you have more history, choose a threshold from your own data using percentiles of:\n
-`speed_ratio = speed_kmh / free_flow_speed_kmh`.\n
-\n
-Run this in Databricks (after the pipeline has produced `fact_link_interval`):\n
-\n
-```sql\n
-SELECT\n
-  approx_percentile(speed_kmh / free_flow_speed_kmh, 0.05) AS p05,\n
-  approx_percentile(speed_kmh / free_flow_speed_kmh, 0.10) AS p10,\n
-  approx_percentile(speed_kmh / free_flow_speed_kmh, 0.20) AS p20,\n
-  approx_percentile(speed_kmh / free_flow_speed_kmh, 0.50) AS median\n
-FROM workspace.default.fact_link_interval\n
-WHERE free_flow_speed_kmh > 0 AND speed_kmh IS NOT NULL;\n
-```\n
-\n
-Then update the multiplier (e.g. use `p10` as a data-driven cutoff), and optionally compute percentiles per `road_name`.\n
+![Traffic performance dashboard](https://github.com/yinli113/traffic_kafka/blob/main/image/traffic-performance.png?raw=1)
 
-## Example visualizations
+Pipeline monitoring:
 
-Pipeline overview:
+![Kafka monitoring dashboard](https://github.com/yinli113/traffic_kafka/blob/main/image/kafka-monitor.png?raw=1)
 
-![Databricks pipeline graph](image/pipeline-graph.png)
+## Confluent Cloud (later)
 
-Traffic performance dashboard:
-
-![Databricks traffic performance](image/traffic-performance.png)
-
-## Confluent Cloud (later): required env vars for Python producer/consumer
-
-Set these in addition to `KAFKA_BOOTSTRAP_SERVERS`:
+Add these env vars in addition to `KAFKA_BOOTSTRAP_SERVERS`:
 
 ```bash
 export KAFKA_SECURITY_PROTOCOL=SASL_SSL
@@ -163,5 +102,12 @@ export KAFKA_SASL_MECHANISM=PLAIN
 export KAFKA_SASL_USERNAME="YOUR_CONFLUENT_API_KEY"
 export KAFKA_SASL_PASSWORD="YOUR_CONFLUENT_API_SECRET"
 ```
+
+## Repo structure
+
+- `src/`: producer, consumer, and status tools
+- `databricks/`: DLT SQL pipeline and notes
+- `docs/`: Kafka status check guide
+- `image/`: dashboard screenshots
 
 
