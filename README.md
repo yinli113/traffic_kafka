@@ -147,11 +147,11 @@ Then update the multiplier (e.g. use `p10` as a data-driven cutoff), and optiona
 
 Pipeline overview:
 
-![Databricks pipeline graph](https://raw.githubusercontent.com/yinli113/traffic_kafka/main/image/pipeline%20graph.png)
+![Databricks pipeline graph](image/pipeline-graph.png)
 
 Traffic performance dashboard:
 
-![Databricks traffic performance](https://raw.githubusercontent.com/yinli113/traffic_kafka/main/image/traffic%20performance.png)
+![Databricks traffic performance](image/traffic-performance.png)
 
 ## Confluent Cloud (later): required env vars for Python producer/consumer
 
