@@ -1,11 +1,11 @@
-# Victoria Real-Time Traffic Pipeline
+# TrafficPulse: Docker + Kafka + Databricks DLT ETL + Streamlit BI Dashboards
 
-Learn Kafka by building a practical streaming pipeline on real traffic data from Victoria Transport Open Data.
+Production-style real-time traffic analytics pipeline using Victoria Transport Open Data. Built to showcase end-to-end data engineering: containerized ingestion, Kafka buffering, Databricks DLT ETL, and BI/AI dashboards.
 
-- **Source**: Bluetooth Travel Time API
-- **Buffer**: Kafka-compatible broker (local Redpanda → Confluent Cloud later)
-- **Processing**: Databricks Streaming Tables (SQL) + Delta
-- **Outputs**: Kafka monitoring KPIs + traffic performance dashboard
+- **Ingestion**: Dockerized Kafka-compatible broker (Redpanda) + Python producer/consumer
+- **Processing**: Databricks DLT (Streaming Tables) + Delta Lake
+- **Observability**: Kafka monitoring KPIs and latency metrics
+- **Dashboards**: Databricks SQL + Streamlit BI app
 
 ## Architecture
 
@@ -68,7 +68,7 @@ See: `docs/kafka_status_check.md` for offsets, lag, and troubleshooting.
 
 ## Databricks Free Edition (file-based streaming)
 
-Use this when you want to practice streaming tables without Kafka connectivity.
+Use this when you want to validate DLT logic without Kafka connectivity.
 
 1. Upload `data/raw/traffic_raw_*.jsonl` to Databricks and create a table.
 2. Recommended table name: `workspace.default.traffic_raw_file_bronze`.
