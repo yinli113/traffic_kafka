@@ -5,5 +5,7 @@ __pycache__/
 
 # local outputs
 data/
+!data/sample/
+!data/sample/*.jsonl
 
 .env

@@ -82,6 +82,45 @@ Use this when you want to practice streaming tables without Kafka connectivity.
    - `databricks/pipeline/transformations/traffic_delay_agg.sql`
 4. Run the pipeline (use **Reset/Full refresh** to reprocess uploads).
 
+## Local SQLite + Streamlit demo
+
+Use this to explore a “real-time” dashboard locally before moving to Databricks.
+
+1. Load JSONL dumps into SQLite (one-time or on demand):
+
+```bash
+python scripts/load_to_sqlite.py --jsonl-dir ./data/raw --db-path ./data/traffic.db
+```
+
+2. Optional: run a tiny ETL loop that updates every 5 minutes:
+
+```bash
+python -m scripts.etl_sqlite_loop
+```
+
+3. Start the Streamlit app and choose dashboards from the sidebar:
+
+```bash
+streamlit run app/streamlit_app.py
+```
+
+The app reads from `SQLITE_DB_PATH` (default: `./data/traffic.db`).
+
+## Streamlit Community Cloud (public demo)
+
+GitHub Pages can’t host Streamlit (it needs a Python server). Use Streamlit Community Cloud:
+
+1. Push this repo to GitHub.
+2. Go to Streamlit Community Cloud → **New app**.
+3. Select this repo, branch `main`, and set **Main file path** to `app/streamlit_app.py`.
+4. Deploy.
+
+Notes:
+- The app will auto-load a tiny sample dataset from `data/sample/traffic_sample.jsonl` if no DB exists.
+- You can override with env vars in Streamlit Cloud:
+  - `SQLITE_DB_PATH=./data/traffic.db`
+  - `SAMPLE_JSONL_PATH=./data/sample/traffic_sample.jsonl`
+
 ## Example dashboards
 
 Traffic performance:
